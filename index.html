@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Distribute SR#</title>
+    <style>
+      body {
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      .distribution {
+        margin: 5px 0;
+      }
+      .app {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+      }
+      #pool-form {
+        max-width: 300px;
+        padding: 0.4rem 0rem;
+        background-color: #ecf0f1;
+        border-radius: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        text-align: center;
+      }
+      #pool-form input {
+        margin: 0 auto;
+        width: 70%;
+        background: #fbfcfc;
+        border: none;
+        padding: 0.3rem;
+        border-radius: 20px;
+        text-align: center;
+      }
+      button {
+        padding: 0.3rem;
+        border-radius: 20px;
+        width: 40%;
+        margin: 0 auto;
+        border: none;
+        background: rgb(53, 44, 61);
+        color: #fbfcfc;
+        font-family: inherit;
+      }
+      input::file-selector-button {
+        background: #000;
+        font-weight: bold;
+        color: #fbfcfc;
+        padding: 0.3rem;
+        border: none;
+        border-radius: 20px;
+        font-family: inherit;
+      }
+
+
+      .input-section{
+        display: flex;
+        flex-direction: column;
+        gap:0.5rem
+
+      }
+
+      #output{
+        display: flex;
+        flex-direction: column;
+        margin: 0 auto;
+        align-items: center;
+
+      }
+      .distribution-section{
+        margin-bottom: 1rem;
+
+      }      .distribution-section h3{
+        text-align: center;
+        
+      }
+
+      .distribution{
+display: grid;
+max-width: 80%;
+margin: 0 auto;
+    grid-template-columns: 1fr 3fr 1fr;
+    align-items: center;
+    padding: 2rem;
+      }
+      .copyBtn{
+       padding: 1rem;
+    width: 37%;
+      }
+    </style> 
+
+</head>
+  <body>
+    <div class="app">
+      <h1>Distribute SR#</h1>
+
+      <form id="pool-form">
+        <div class="input-section">
+          <label for="pool1-count">Number of people in Pool 1:</label>
+          <input type="number" id="pool1-count" min="1" required />
+        </div>
+
+        <div class="input-section">
+          <label for="pool2-count">Number of people in Pool 2:</label>
+          <input type="number" id="pool2-count" min="1" required />
+        </div>
+
+        <div class="input-section">
+          <label for="file-upload">Choose an Excel file:</label>
+          <input
+            class="upload"
+            type="file"
+            id="file-upload"
+            accept=".xlsx, .xls, .csv"
+            required
+          />
+        </div>
+        <button type="submit">Distribute</button>
+      </form>
+
+      <div id="output">
+        <h2>Distribution Results:</h2>
+        <div id="pool1-distribution" class="distribution-section">
+          <h3>Pool 1 Distribution</h3>
+        </div>
+        <div id="pool2-distribution" class="distribution-section">
+          <h3>Pool 2 Distribution</h3>
+        </div>
+      </div>
+    </div>
+    </body>
+</html>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+    <script>
+        document.getElementById('pool-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+
+            const pool1Count = parseInt(document.getElementById('pool1-count').value);
+            const pool2Count = parseInt(document.getElementById('pool2-count').value);
+            const fileInput = document.getElementById('file-upload');
+
+
+
+            if (fileInput.files.length === 0) {
+                alert("Please choose a file first.");
+                return;
+            }
+
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+
+            reader.onload = function(event) {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+
+                const pool1Members = [
+                    'RCHARY', 'ESDASARIVI', 'IY0990B', 'ILLASAIP',
+                    'KANADARC', 'ESKUMARG1', 'ESMUDUTHAN', 'ESTHAKURR1', 'BANDAGAN'
+                ];
+
+
+                let pool1EmailSRs = [];
+                let pool2EmailSRs = [];
+                let pool1RemainingSRs = [];
+                let pool2RemainingSRs = [];
+
+
+                // Distribute SRs linked to "Email" source first
+                worksheet.forEach(row => {
+                    const owner = row['Owner Login'];
+                    const sr = row['SR#'];
+                    const source = row['Source'];
+
+
+                    if (source === 'Email') {
+                        if (pool1Members.includes(owner)) {
+                            pool1EmailSRs.push(sr);
+                        } else {
+                            pool2EmailSRs.push(sr);
+                        }
+                    } else {
+                        // Add to remaining arrays for later distribution
+                        if (pool1Members.includes(owner)) {
+                            pool1RemainingSRs.push(sr);
+                        } else {
+                            pool2RemainingSRs.push(sr);
+                        }
+                    }
+                });
+
+
+                // Distribute SRs linked to "Email" source
+                const pool1EmailDistribution = distributeSRs(pool1EmailSRs, pool1Count);
+                const pool2EmailDistribution = distributeSRs(pool2EmailSRs, pool2Count);
+
+
+                // Distribute remaining SRs
+                const pool1RemainingDistribution = distributeSRs(pool1RemainingSRs, pool1Count);
+                const pool2RemainingDistribution = distributeSRs(pool2RemainingSRs, pool2Count);
+
+
+                // Combine and display results
+                displayDistribution(pool1EmailDistribution, 'pool1-distribution');
+                displayDistribution(pool2EmailDistribution, 'pool2-distribution');
+                displayDistribution(pool1RemainingDistribution, 'pool1-distribution');
+                displayDistribution(pool2RemainingDistribution, 'pool2-distribution');
+            };
+
+
+            reader.readAsArrayBuffer(file);
+        });
+
+
+        function distributeSRs(srs, count) {
+            const distribution = {};
+            for (let i = 0; i < count; i++) {
+                distribution[`Pool Member ${i + 1}`] = [];
+            }
+
+
+            let index = 0;
+            srs.forEach(sr => {
+                distribution[`Pool Member ${index + 1}`].push(sr);
+                index = (index + 1) % count;
+            });
+
+
+            return distribution;
+        }
+
+
+
+function copyToClipboard(text,copyButton) {
+    const tempInput = document.createElement('input');
+    document.body.appendChild(tempInput);
+    tempInput.value = text;
+    tempInput.select();
+    document.execCommand('copy');
+    document.body.removeChild(tempInput);
+    copyButton.innerText='Copied ✅'
+
+    setTimeout(function(){
+    copyButton  .innerHTML='Copy'
+    },1000)
+    // alert('Copied to clipboard!');
+
+}
+
+        function displayDistribution(distribution, elementId) {
+    const container = document.getElementById(elementId);
+    container.innerHTML = `<h3>${elementId}:</h3>`;
+    for (const [member, srs] of Object.entries(distribution)) {
+        const div = document.createElement('div');
+        div.className = 'distribution';
+        div.innerHTML = `<strong>${member}</strong> ${srs.join(' or ')}`;
+        const copyButton = document.createElement('button');
+        copyButton.className='copyBtn'
+        copyButton.innerText = 'Copy';
+        copyButton.style.marginLeft = '10px';
+        copyButton.onclick = function() {
+            copyToClipboard(srs.join(' or '),copyButton);
+        };
+        div.appendChild(copyButton);
+        container.appendChild(div);
+    }
+}
+
+    </script>
+</body>
+</html>
