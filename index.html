@@ -177,13 +177,11 @@
             let pool1RemainingSRs = [];
             let pool2RemainingSRs = [];
 
-            // Distribute SRs linked to "Email" source first
             worksheet.forEach((row) => {
               const owner = row["Owner Login"];
               const sr = row["SR#"];
               const source = row["Source"];
 
-              // Skip SRs whose owner is in the exclusion list
               const excludedOwners = ["AKONAKA", "CANANUMULLA", "BTHUMMA"];
               if (excludedOwners.includes(owner)) {
                 return;
@@ -196,7 +194,6 @@
                   pool2EmailSRs.push(sr);
                 }
               } else {
-                // Add to remaining arrays for later distribution
                 if (pool1Members.includes(owner)) {
                   pool1RemainingSRs.push(sr);
                 } else {
@@ -205,9 +202,6 @@
               }
             });
 
-            //AKONAKA CANANUMULLA BTHUMMA
-
-            // Distribute SRs linked to "Email" source
             const pool1EmailDistribution = distributeSRs(
               pool1EmailSRs,
               pool1Count
@@ -216,8 +210,6 @@
               pool2EmailSRs,
               pool2Count
             );
-
-            // Distribute remaining SRs
             const pool1RemainingDistribution = distributeSRs(
               pool1RemainingSRs,
               pool1Count
@@ -227,15 +219,21 @@
               pool2Count
             );
 
-            // Combine and display results
-            displayDistribution(pool1EmailDistribution, "pool1-distribution");
-            displayDistribution(pool2EmailDistribution, "pool2-distribution");
+            const combinedPool1Distribution = combineDistributions(
+              pool1EmailDistribution,
+              pool1RemainingDistribution
+            );
+            const combinedPool2Distribution = combineDistributions(
+              pool2EmailDistribution,
+              pool2RemainingDistribution
+            );
+
             displayDistribution(
-              pool1RemainingDistribution,
+              combinedPool1Distribution,
               "pool1-distribution"
             );
             displayDistribution(
-              pool2RemainingDistribution,
+              combinedPool2Distribution,
               "pool2-distribution"
             );
           };
@@ -258,6 +256,18 @@
         return distribution;
       }
 
+      function combineDistributions(distribution1, distribution2) {
+        const combined = { ...distribution1 };
+        for (const member in distribution2) {
+          if (combined[member]) {
+            combined[member] = combined[member].concat(distribution2[member]);
+          } else {
+            combined[member] = distribution2[member];
+          }
+        }
+        return combined;
+      }
+
       function copyToClipboard(text, copyButton) {
         const tempInput = document.createElement("input");
         document.body.appendChild(tempInput);
@@ -270,12 +280,11 @@
         setTimeout(function () {
           copyButton.innerHTML = "Copy";
         }, 1000);
-        // alert('Copied to clipboard!');
       }
 
       function displayDistribution(distribution, elementId) {
         const container = document.getElementById(elementId);
-        container.innerHTML = `<h3>${elementId}:</h3>`;
+        container.innerHTML = "";
         for (const [member, srs] of Object.entries(distribution)) {
           const div = document.createElement("div");
           div.className = "distribution";
