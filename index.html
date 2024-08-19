@@ -204,19 +204,23 @@
 
             const pool1EmailDistribution = distributeSRs(
               pool1EmailSRs,
-              pool1Count
+              pool1Count,
+              "Pool 1"
             );
             const pool2EmailDistribution = distributeSRs(
               pool2EmailSRs,
-              pool2Count
+              pool2Count,
+              "Pool 2"
             );
             const pool1RemainingDistribution = distributeSRs(
               pool1RemainingSRs,
-              pool1Count
+              pool1Count,
+              "Pool 1"
             );
             const pool2RemainingDistribution = distributeSRs(
               pool2RemainingSRs,
-              pool2Count
+              pool2Count,
+              "Pool 2"
             );
 
             const combinedPool1Distribution = combineDistributions(
@@ -241,15 +245,15 @@
           reader.readAsArrayBuffer(file);
         });
 
-      function distributeSRs(srs, count) {
+      function distributeSRs(srs, count, group) {
         const distribution = {};
         for (let i = 0; i < count; i++) {
-          distribution[`Pool Member ${i + 1}`] = [];
+          distribution[`${group} Member ${i + 1}`] = [];
         }
 
         let index = 0;
         srs.forEach((sr) => {
-          distribution[`Pool Member ${index + 1}`].push(sr);
+          distribution[`${group} Member ${index + 1}`].push(sr);
           index = (index + 1) % count;
         });
 
